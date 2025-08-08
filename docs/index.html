@@ -164,6 +164,8 @@ async def custom_site():
         screen.blit(prompt, ( marginx+ ux(80), marginy - uy(10) ) )
         compose()
 
+    # auto-satisfy user media engagement to avoid waiting for a click
+    platform.window.MM.UME = True
     # test/wait if user media interaction required
     if not platform.window.MM.UME:
 
