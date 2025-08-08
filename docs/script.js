@@ -112,26 +112,62 @@
     }
   }
 
-  function saveScore() {
+  // Cloud leaderboard using a simple approach
+  // For cross-device sync, we'll use a simple cloud storage solution
+
+  async function saveScore() {
     if (!nickname) return;
+    
+    const newScore = { score, nickname, timestamp: Date.now() };
+    
+    // Save to localStorage as backup
     try {
       const raw = localStorage.getItem('snake_scores');
       const arr = raw ? JSON.parse(raw) : [];
-      arr.push({ score, nickname, timestamp: Date.now() });
-      // Keep top 100 scores, sorted by score then by timestamp
+      arr.push(newScore);
       const sorted = arr.sort((a, b) => {
         if (a.score !== b.score) return b.score - a.score;
         return a.timestamp - b.timestamp;
       }).slice(0, 100);
       localStorage.setItem('snake_scores', JSON.stringify(sorted));
-    } catch {}
+    } catch (error) {
+      console.log('localStorage save failed');
+    }
+    
+    // Try to save to cloud (non-blocking)
+    saveScoreToCloud(newScore).catch(error => {
+      console.log('Cloud save failed:', error);
+    });
   }
 
-  function loadScores() {
+  async function saveScoreToCloud(newScore) {
+    try {
+      // Using a simple cloud storage approach
+      // This is a placeholder for a real cloud implementation
+      const cloudData = {
+        scores: [newScore],
+        timestamp: Date.now()
+      };
+      
+      // For now, we'll just log that we want cloud storage
+      console.log('Score ready for cloud storage:', newScore);
+      console.log('To implement cross-device sync, use a service like:');
+      console.log('- Firebase Realtime Database');
+      console.log('- AWS DynamoDB');
+      console.log('- MongoDB Atlas');
+      console.log('- Supabase');
+      
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async function loadScores() {
+    // For now, just use localStorage
+    // In a real implementation, you'd load from cloud first
     try {
       const raw = localStorage.getItem('snake_scores');
       const arr = raw ? JSON.parse(raw) : [];
-      // Filter out old format scores (numbers) and only keep new format with nicknames
       const scores = arr.filter(item => typeof item === 'object' && item.nickname);
       return scores.slice(0, 15);
     } catch { return []; }
@@ -376,7 +412,10 @@
     ctx.fillStyle = COLORS.text; ctx.textAlign = 'center';
     ctx.font = `${Math.floor(SIZE*0.036)}px Inter, sans-serif`;
     ctx.fillText('Leaderboard', SIZE/2, 80);
-    const scores = loadScores();
+    
+    // Load scores synchronously for now
+    const scores = loadScoresSync();
+    
     ctx.font = `${Math.floor(SIZE*0.023)}px Inter, sans-serif`;
     if (scores.length === 0) {
       ctx.fillText('No scores yet', SIZE/2, SIZE/2);
@@ -400,6 +439,15 @@
     ctx.font = `${Math.floor(SIZE*0.018)}px Inter, sans-serif`;
     ctx.fillStyle = '#c8c8c8';
     ctx.fillText('Esc/Backspace to return', SIZE/2 - 120, SIZE - 40);
+  }
+
+  function loadScoresSync() {
+    try {
+      const raw = localStorage.getItem('snake_scores');
+      const arr = raw ? JSON.parse(raw) : [];
+      const scores = arr.filter(item => typeof item === 'object' && item.nickname);
+      return scores.slice(0, 15);
+    } catch { return []; }
   }
 
   function drawFruits() {
