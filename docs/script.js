@@ -1,11 +1,22 @@
 (() => {
   const GRID = 32;
-  const SIZE = 1200; // px
-  const CELL = Math.floor(SIZE / GRID);
+  let SIZE = 1200; // px
+  let CELL = Math.floor(SIZE / GRID);
   const FPS = 12;
 
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
+  function resizeCanvas() {
+    const maxSide = Math.min(window.innerWidth, window.innerHeight) - 20;
+    let target = Math.min(1200, Math.max(600, maxSide));
+    const cell = Math.max(10, Math.floor(target / GRID));
+    SIZE = cell * GRID;
+    CELL = cell;
+    canvas.width = SIZE;
+    canvas.height = SIZE;
+  }
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
 
   const COLORS = {
     bg: '#121418',
@@ -215,11 +226,11 @@
 
   function drawScoreAndTurbo() {
     ctx.fillStyle = COLORS.text;
-    ctx.font = '28px Inter, sans-serif';
+    ctx.font = `${Math.floor(SIZE*0.023)}px Inter, sans-serif`;
     ctx.fillText(`Score: ${score}`, 12, 32);
 
     // turbo bar top-right
-    const bw = 200, bh = 16, m = 12; const x = SIZE - bw - m, y = m;
+    const bw = Math.floor(SIZE*0.17), bh = Math.floor(SIZE*0.013), m = 12; const x = SIZE - bw - m, y = m;
     ctx.fillStyle = '#3a3a3a'; roundRect(x, y, bw, bh, 6); ctx.fill();
     if (turboActive) {
       const ratio = 1 - Math.min(1, (performance.now() - turboLast) / TURBO_DUR);
@@ -230,19 +241,19 @@
       ctx.fillStyle = ratio >= 1 ? '#5bd18a' : '#78aaff';
       roundRect(x, y, bw * ratio, bh, 6); ctx.fill();
     }
-    ctx.fillStyle = COLORS.text; ctx.font = '22px Inter, sans-serif';
+    ctx.fillStyle = COLORS.text; ctx.font = `${Math.floor(SIZE*0.018)}px Inter, sans-serif`;
     ctx.fillText('TURBO', x - 90, y + 13);
   }
 
   function drawMenu() {
     ctx.fillStyle = COLORS.bg; ctx.fillRect(0, 0, SIZE, SIZE);
     ctx.fillStyle = COLORS.text; ctx.textAlign = 'center';
-    ctx.font = '48px Inter, sans-serif';
+    ctx.font = `${Math.floor(SIZE*0.04)}px Inter, sans-serif`;
     ctx.fillText('Snake 32x32', SIZE/2, SIZE/2 - 180);
-    ctx.font = '28px Inter, sans-serif';
+    ctx.font = `${Math.floor(SIZE*0.023)}px Inter, sans-serif`;
     menu.forEach((m, i) => {
       ctx.fillStyle = (i === menuIndex) ? '#fff' : '#c8c8c8';
-      ctx.fillText(m, SIZE/2, SIZE/2 - 40 + i * 48);
+      ctx.fillText(m, SIZE/2, SIZE/2 - Math.floor(SIZE*0.033) + i * Math.floor(SIZE*0.04));
     });
     ctx.textAlign = 'left';
   }
@@ -250,21 +261,21 @@
   function drawLeader() {
     ctx.fillStyle = COLORS.bg; ctx.fillRect(0, 0, SIZE, SIZE);
     ctx.fillStyle = COLORS.text; ctx.textAlign = 'center';
-    ctx.font = '44px Inter, sans-serif';
+    ctx.font = `${Math.floor(SIZE*0.036)}px Inter, sans-serif`;
     ctx.fillText('Leaderboard', SIZE/2, 80);
     const scores = loadScores();
-    ctx.font = '28px Inter, sans-serif';
+    ctx.font = `${Math.floor(SIZE*0.023)}px Inter, sans-serif`;
     if (scores.length === 0) {
       ctx.fillText('No scores yet', SIZE/2, SIZE/2);
     } else {
       let y = 140; ctx.textAlign = 'left';
       scores.forEach((s, i) => {
         ctx.fillText(`${String(i+1).padStart(2, ' ')}. ${s}`, SIZE/2 - 80, y);
-        y += 34;
+        y += Math.floor(SIZE*0.028);
       });
     }
     ctx.textAlign = 'left';
-    ctx.font = '22px Inter, sans-serif';
+    ctx.font = `${Math.floor(SIZE*0.018)}px Inter, sans-serif`;
     ctx.fillStyle = '#c8c8c8';
     ctx.fillText('Esc/Backspace to return', SIZE/2 - 120, SIZE - 40);
   }
@@ -272,26 +283,26 @@
   function drawFruits() {
     ctx.fillStyle = COLORS.bg; ctx.fillRect(0, 0, SIZE, SIZE);
     ctx.fillStyle = COLORS.text; ctx.textAlign = 'center';
-    ctx.font = '44px Inter, sans-serif';
+    ctx.font = `${Math.floor(SIZE*0.036)}px Inter, sans-serif`;
     ctx.fillText('Fruits', SIZE/2, 70);
     ctx.textAlign = 'left';
-    ctx.font = '26px Inter, sans-serif';
+    ctx.font = `${Math.floor(SIZE*0.022)}px Inter, sans-serif`;
     let y = 130;
     FRUITS.forEach(f => {
-      ctx.fillStyle = f.color; roundRect(120, y, 32, 28, 6); ctx.fill();
+      ctx.fillStyle = f.color; roundRect(120, y, Math.floor(SIZE*0.026), Math.floor(SIZE*0.023), 6); ctx.fill();
       ctx.fillStyle = COLORS.text;
       ctx.fillText(`${f.name}  +${f.points}`, 170, y + 22);
       y += 50;
     });
     ctx.fillStyle = '#ff6a5e';
     // draw 2x2 block
-    const cell = 22; const bx = 120, by = y + 10;
+    const cell = Math.floor(SIZE*0.018); const bx = 120, by = y + 10;
     roundRect(bx, by, cell, cell, 6); ctx.fill();
     roundRect(bx+cell+4, by, cell, cell, 6); ctx.fill();
     roundRect(bx, by+cell+4, cell, cell, 6); ctx.fill();
     roundRect(bx+cell+4, by+cell+4, cell, cell, 6); ctx.fill();
     ctx.fillStyle = COLORS.text; ctx.fillText('Mega Fruit (2x2 center)  +10', 170, by + 20);
-    ctx.font = '22px Inter, sans-serif'; ctx.fillStyle = '#c8c8c8';
+    ctx.font = `${Math.floor(SIZE*0.018)}px Inter, sans-serif`; ctx.fillStyle = '#c8c8c8';
     ctx.fillText('Esc/Backspace to return', SIZE/2 - 120, SIZE - 40);
   }
 
