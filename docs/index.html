@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, maximum-scale=1" />
     <title>Snake 32x32</title>
     <link rel="icon" href="favicon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,6 +13,19 @@
   <body>
     <div class="wrap">
       <canvas id="game" width="1200" height="1200"></canvas>
+      <div id="mobile-controls" class="mobile-controls">
+        <div class="control-row">
+          <button id="up-btn" class="control-btn">↑</button>
+        </div>
+        <div class="control-row">
+          <button id="left-btn" class="control-btn">←</button>
+          <button id="down-btn" class="control-btn">↓</button>
+          <button id="right-btn" class="control-btn">→</button>
+        </div>
+        <div class="control-row">
+          <button id="turbo-btn" class="control-btn turbo-btn">TURBO</button>
+        </div>
+      </div>
     </div>
     <script src="script.js"></script>
   </body>

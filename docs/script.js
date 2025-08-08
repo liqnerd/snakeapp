@@ -573,6 +573,7 @@
         }
       }
       drawPlay();
+      updateTurboButton();
     } else if (state === STATE.MENU) {
       drawMenu();
     } else if (state === STATE.NICKNAME) {
@@ -646,12 +647,97 @@
     }
   });
 
+  // Mobile controls
+  const mobileControls = {
+    upBtn: document.getElementById('up-btn'),
+    leftBtn: document.getElementById('left-btn'),
+    downBtn: document.getElementById('down-btn'),
+    rightBtn: document.getElementById('right-btn'),
+    turboBtn: document.getElementById('turbo-btn')
+  };
+
+  // Mobile control event handlers
+  function setupMobileControls() {
+    if (mobileControls.upBtn) {
+      mobileControls.upBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        if (state === STATE.PLAY && dir.y !== 1) {
+          pendingDir = { x: 0, y: -1 };
+        }
+      });
+    }
+
+    if (mobileControls.leftBtn) {
+      mobileControls.leftBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        if (state === STATE.PLAY && dir.x !== 1) {
+          pendingDir = { x: -1, y: 0 };
+        }
+      });
+    }
+
+    if (mobileControls.downBtn) {
+      mobileControls.downBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        if (state === STATE.PLAY && dir.y !== -1) {
+          pendingDir = { x: 0, y: 1 };
+        }
+      });
+    }
+
+    if (mobileControls.rightBtn) {
+      mobileControls.rightBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        if (state === STATE.PLAY && dir.x !== -1) {
+          pendingDir = { x: 1, y: 0 };
+        }
+      });
+    }
+
+    if (mobileControls.turboBtn) {
+      mobileControls.turboBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        if (state === STATE.PLAY) {
+          const now = performance.now();
+          if (!turboActive && (now - turboLast >= TURBO_COOLDOWN)) {
+            turboActive = true;
+            turboLast = now;
+          }
+        }
+      });
+    }
+  }
+
+  // Update turbo button visual state
+  function updateTurboButton() {
+    if (!mobileControls.turboBtn) return;
+    
+    const since = performance.now() - turboLast;
+    const ratio = Math.min(1, since / TURBO_COOLDOWN);
+    
+    if (turboActive) {
+      mobileControls.turboBtn.style.backgroundColor = '#ff6a5e';
+      mobileControls.turboBtn.textContent = 'TURBO!';
+    } else if (ratio >= 1) {
+      // Ready - make it blink
+      const t = performance.now()/1000;
+      const glow = (Math.sin(t*6)+1)/2;
+      const light = Math.floor(60 + glow * 40);
+      mobileControls.turboBtn.style.backgroundColor = `hsl(140, 60%, ${light}%)`;
+      mobileControls.turboBtn.textContent = 'TURBO';
+    } else {
+      mobileControls.turboBtn.style.backgroundColor = '#78aaff';
+      mobileControls.turboBtn.textContent = 'TURBO';
+    }
+  }
+
   // End turbo
   setInterval(() => {
     if (turboActive && performance.now() - turboLast >= TURBO_DUR) turboActive = false;
   }, 50);
 
   start();
+  setupMobileControls();
 })();
 
 
