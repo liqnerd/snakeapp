@@ -12,8 +12,8 @@ import pygame
 # Game configuration
 # ----------------------------
 GRID_SIZE = 32  # 32x32 grid
-WINDOW_SIZE = 1200  # requested window size
-CELL_SIZE = WINDOW_SIZE // GRID_SIZE  # integral pixels per cell
+WINDOW_SIZE = 1200  # requested desktop window size
+CELL_SIZE = WINDOW_SIZE // GRID_SIZE  # pixels per cell
 BOARD_PIXELS = CELL_SIZE * GRID_SIZE
 BOARD_OFFSET = (WINDOW_SIZE - BOARD_PIXELS) // 2  # center the board
 FPS = 12  # base tick rate (logic paced separately)
@@ -444,7 +444,11 @@ def draw_fruits_info(surface: pygame.Surface, font: pygame.font.Font, big_font: 
 def main():
     pygame.init()
     pygame.display.set_caption("Snake 32x32")
-    screen = pygame.display.set_mode((WINDOW_SIZE, WINDOW_SIZE))
+    if "emscripten" in sys.platform:
+        # Auto-fit to browser canvas for pygbag
+        screen = pygame.display.set_mode((0, 0), pygame.SCALED)
+    else:
+        screen = pygame.display.set_mode((WINDOW_SIZE, WINDOW_SIZE))
     clock = pygame.time.Clock()
     # Use default font to avoid missing font issues on the web
     font = pygame.font.Font(None, 28)
@@ -522,19 +526,32 @@ def main():
                         state = STATE_MENU
 
         # Update and draw
-        if state == STATE_MENU:
-            draw_menu(screen, font, big_font, menu_index, menu_options)
-        elif state == STATE_PLAY:
-            prev_over = game.game_over
-            game.update(now_ms)
-            if game.game_over and not prev_over:
-                # Save score once when game transitions to over
-                save_score(game.score)
-            game.draw(screen, font)
-        elif state == STATE_LEADER:
-            draw_leaderboard(screen, font, big_font)
-        elif state == STATE_FRUITS:
-            draw_fruits_info(screen, font, big_font)
+        try:
+            if state == STATE_MENU:
+                draw_menu(screen, font, big_font, menu_index, menu_options)
+            elif state == STATE_PLAY:
+                prev_over = game.game_over
+                game.update(now_ms)
+                if game.game_over and not prev_over:
+                    # Save score once when game transitions to over
+                    save_score(game.score)
+                game.draw(screen, font)
+            elif state == STATE_LEADER:
+                draw_leaderboard(screen, font, big_font)
+            elif state == STATE_FRUITS:
+                draw_fruits_info(screen, font, big_font)
+        except Exception as e:
+            # Render error to screen so web users don't see black screen
+            msg = f"Error: {type(e).__name__}: {e}"
+            print(msg)
+            screen.fill((0, 0, 0))
+            err_font = pygame.font.Font(None, 28)
+            # Wrap error text
+            y = 40
+            for line in [msg[i:i+60] for i in range(0, len(msg), 60)][:10]:
+                surf = err_font.render(line, True, (255, 80, 80))
+                screen.blit(surf, (20, y))
+                y += 30
 
         pygame.display.flip()
         clock.tick(FPS)
