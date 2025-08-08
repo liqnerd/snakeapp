@@ -131,13 +131,8 @@
     try {
       const raw = localStorage.getItem('snake_scores');
       const arr = raw ? JSON.parse(raw) : [];
-      // Handle both old format (numbers) and new format (objects)
-      const scores = arr.map(item => {
-        if (typeof item === 'number') {
-          return { score: item, nickname: 'Anonymous', timestamp: 0 };
-        }
-        return item;
-      });
+      // Filter out old format scores (numbers) and only keep new format with nicknames
+      const scores = arr.filter(item => typeof item === 'object' && item.nickname);
       return scores.slice(0, 15);
     } catch { return []; }
   }
@@ -388,8 +383,15 @@
     } else {
       let y = 140; ctx.textAlign = 'left';
       scores.forEach((s, i) => {
-        const scoreText = typeof s === 'number' ? s : s.score;
-        const nicknameText = typeof s === 'number' ? 'Anonymous' : s.nickname;
+        // Handle both old and new score formats
+        let scoreText, nicknameText;
+        if (typeof s === 'number') {
+          scoreText = s;
+          nicknameText = 'Anonymous';
+        } else {
+          scoreText = s.score;
+          nicknameText = s.nickname || 'Anonymous';
+        }
         ctx.fillText(`${String(i+1).padStart(2, ' ')}. ${nicknameText} - ${scoreText}`, SIZE/2 - 120, y);
         y += Math.floor(SIZE*0.028);
       });
