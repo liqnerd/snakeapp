@@ -164,8 +164,6 @@ async def custom_site():
         screen.blit(prompt, ( marginx+ ux(80), marginy - uy(10) ) )
         compose()
 
-    # auto-satisfy user media engagement to avoid waiting for a click
-    platform.window.MM.UME = True
     # test/wait if user media interaction required
     if not platform.window.MM.UME:
 
@@ -239,12 +237,12 @@ config = {
     _sdl2 : "canvas",
     user_canvas : 0,
     user_canvas_managed : 0,
-    ume_block : 0,
+    ume_block : 1,
     can_close : 0,
     archive : "snakeapp",
     gui_debug : 3,
     cdn : "https://pygame-web.github.io/archives/0.9/",
-    autorun : 1,
+    autorun : 0,
     PYBUILD : "3.12"
 }
 
@@ -489,5 +487,3 @@ frameborder="1"
 
 </body>
 </html>
-
-
