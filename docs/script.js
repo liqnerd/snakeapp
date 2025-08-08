@@ -27,11 +27,11 @@
   };
 
   const FRUITS = [
-    { name: 'Apple', color: '#eb4034', points: 1, weight: 50 },
-    { name: 'Orange', color: '#ffa500', points: 2, weight: 30 },
-    { name: 'Banana', color: '#ffd700', points: 3, weight: 15 },
-    { name: 'Berry', color: '#ba55d3', points: 4, weight: 4 },
-    { name: 'Starfruit', color: '#1e90ff', points: 5, weight: 1 },
+    { name: 'Apple',    color: '#eb4034', points: 1, weight: 50, shape: 'circle'   },
+    { name: 'Orange',   color: '#ffa500', points: 2, weight: 30, shape: 'ring'     },
+    { name: 'Banana',   color: '#ffd700', points: 3, weight: 15, shape: 'crescent' },
+    { name: 'Berry',    color: '#ba55d3', points: 4, weight: 4,  shape: 'diamond'  },
+    { name: 'Starfruit',color: '#1e90ff', points: 5, weight: 1,  shape: 'star'     },
   ];
 
   const STATE = {
@@ -47,7 +47,7 @@
 
   let score = 0;
   let snake, dir, pendingDir, growthPending;
-  let fruit, fruitPoints, fruitColor, fruitName;
+  let fruit, fruitPoints, fruitColor, fruitName, fruitShape;
   let specialActive = false;
   let specialCells = [];
   let specialExpireAt = 0;
@@ -85,20 +85,27 @@
     fruitPoints = choice.points;
     fruitColor = choice.color;
     fruitName = choice.name;
+    fruitShape = choice.shape;
   }
 
   function spawnSpecial() {
     if (specialActive) return;
-    const cx = (GRID >> 1) - 1, cy = (GRID >> 1) - 1;
-    const cells = [
-      { x: cx, y: cy }, { x: cx + 1, y: cy },
-      { x: cx, y: cy + 1 }, { x: cx + 1, y: cy + 1 },
-    ];
     const occ = new Set(snake.map(s => `${s.x},${s.y}`));
-    if (cells.some(c => occ.has(`${c.x},${c.y}`))) return;
-    specialCells = cells;
-    specialActive = true;
-    specialExpireAt = performance.now() + SPECIAL_DURATION_MS;
+    // try random top-lefts for 2x2 block
+    for (let t = 0; t < 100; t++) {
+      const tx = (Math.random() * (GRID - 1)) | 0; // up to GRID-2
+      const ty = (Math.random() * (GRID - 1)) | 0;
+      const cells = [
+        { x: tx, y: ty }, { x: tx + 1, y: ty },
+        { x: tx, y: ty + 1 }, { x: tx + 1, y: ty + 1 },
+      ];
+      if (!cells.some(c => occ.has(`${c.x},${c.y}`))) {
+        specialCells = cells;
+        specialActive = true;
+        specialExpireAt = performance.now() + SPECIAL_DURATION_MS;
+        return;
+      }
+    }
   }
 
   function saveScore() {
@@ -161,8 +168,8 @@
       score += fruitPoints;
       growthPending += fruitPoints;
       rollFruit();
-      // 2% chance each time you eat to spawn special
-      if (!specialActive && Math.random() < 0.02) spawnSpecial();
+      // Increase spawn chance by ~25%
+      if (!specialActive && Math.random() < 0.025) spawnSpecial();
     }
     // expire special
     if (specialActive && performance.now() >= specialExpireAt) {
@@ -184,9 +191,54 @@
 
   function drawFruit() {
     const x = fruit.x * CELL, y = fruit.y * CELL;
-    ctx.fillStyle = fruitColor;
-    roundRect(x+2, y+2, CELL-4, CELL-4, 6);
-    ctx.fill();
+    const cx = x + CELL/2, cy = y + CELL/2;
+    const r = Math.max(6, CELL*0.4);
+    ctx.save();
+    if (fruitShape === 'circle') {
+      ctx.fillStyle = fruitColor;
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
+    } else if (fruitShape === 'ring') {
+      ctx.strokeStyle = fruitColor; ctx.lineWidth = Math.max(3, CELL*0.2);
+      ctx.beginPath(); ctx.arc(cx, cy, r*0.8, 0, Math.PI*2); ctx.stroke();
+    } else if (fruitShape === 'diamond') {
+      ctx.fillStyle = fruitColor;
+      ctx.beginPath();
+      ctx.moveTo(cx, y+3);
+      ctx.lineTo(x+CELL-3, cy);
+      ctx.lineTo(cx, y+CELL-3);
+      ctx.lineTo(x+3, cy);
+      ctx.closePath(); ctx.fill();
+    } else if (fruitShape === 'crescent') {
+      // draw a circle then carve with bg to make crescent
+      ctx.fillStyle = fruitColor;
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.fillStyle = 'rgba(0,0,0,1)';
+      ctx.beginPath(); ctx.arc(cx + r*0.35, cy, r*0.9, 0, Math.PI*2); ctx.fill();
+      ctx.globalCompositeOperation = 'source-over';
+    } else if (fruitShape === 'star') {
+      ctx.fillStyle = fruitColor;
+      starPath(cx, cy, r*0.9, r*0.45, 5);
+      ctx.fill();
+    } else {
+      // fallback rounded rect
+      ctx.fillStyle = fruitColor;
+      roundRect(x+2, y+2, CELL-4, CELL-4, 6); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function starPath(cx, cy, outer, inner, points) {
+    const step = Math.PI / points;
+    ctx.beginPath();
+    for (let i = 0; i < 2*points; i++) {
+      const r = (i % 2) ? inner : outer;
+      const a = i * step - Math.PI/2;
+      const x = cx + Math.cos(a) * r;
+      const y = cy + Math.sin(a) * r;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
   }
 
   function drawSpecial() {
@@ -240,6 +292,14 @@
       const ratio = Math.min(1, since / TURBO_COOLDOWN);
       ctx.fillStyle = ratio >= 1 ? '#5bd18a' : '#78aaff';
       roundRect(x, y, bw * ratio, bh, 6); ctx.fill();
+      // Ready effect: pulsating glow when available
+      if (ratio >= 1) {
+        const t = performance.now()/1000;
+        const glow = (Math.sin(t*6)+1)/2; // 0..1
+        ctx.strokeStyle = `rgba(255,255,180,${0.35 + glow*0.4})`;
+        ctx.lineWidth = Math.max(2, bh * 0.5);
+        ctx.strokeRect(x - 3, y - 3, bw + 6, bh + 6);
+      }
     }
     ctx.fillStyle = COLORS.text; ctx.font = `${Math.floor(SIZE*0.018)}px Inter, sans-serif`;
     ctx.fillText('TURBO', x - 90, y + 13);
