@@ -12,8 +12,18 @@
     const cell = Math.max(10, Math.floor(target / GRID));
     SIZE = cell * GRID;
     CELL = cell;
-    canvas.width = SIZE;
-    canvas.height = SIZE;
+    
+    // Set canvas size with device pixel ratio for sharp rendering
+    const dpr = window.devicePixelRatio || 1;
+    
+    canvas.width = SIZE * dpr;
+    canvas.height = SIZE * dpr;
+    canvas.style.width = SIZE + 'px';
+    canvas.style.height = SIZE + 'px';
+    
+    // Reset transform and scale for sharp rendering
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(dpr, dpr);
   }
   resizeCanvas();
   window.addEventListener('resize', resizeCanvas);
@@ -556,8 +566,9 @@
     ctx.font = `${Math.floor(SIZE*0.018)}px Inter, sans-serif`;
     ctx.fillStyle = '#888';
     ctx.textAlign = 'center';
-    ctx.fillText('Press Enter to continue', SIZE/2, SIZE/2 + 50);
-    ctx.fillText('Max 12 characters', SIZE/2, SIZE/2 + 80);
+    ctx.fillText('Use keyboard below to type', SIZE/2, SIZE/2 + 50);
+    ctx.fillText('Press Enter to continue', SIZE/2, SIZE/2 + 80);
+    ctx.fillText('Max 12 characters', SIZE/2, SIZE/2 + 110);
   }
 
   function tick(ts) {
@@ -583,6 +594,10 @@
     } else if (state === STATE.FRUITS) {
       drawFruits();
     }
+    
+    // Update mobile keyboard visibility
+    updateMobileKeyboardVisibility();
+    
     requestAnimationFrame(tick);
   }
 
@@ -647,29 +662,45 @@
     }
   });
 
-  // Mobile controls
-  const mobileControls = {
-    upBtn: document.getElementById('up-btn'),
-    leftBtn: document.getElementById('left-btn'),
-    downBtn: document.getElementById('down-btn'),
-    rightBtn: document.getElementById('right-btn'),
-    turboBtn: document.getElementById('turbo-btn'),
-    enterBtn: document.getElementById('enter-btn'),
-    backBtn: document.getElementById('back-btn')
-  };
+  // Mobile controls - will be initialized after DOM is ready
+  let mobileControls = {};
+  let mobileKeyboard = null;
 
-  // Virtual keyboard
-  const mobileKeyboard = document.getElementById('mobile-keyboard');
+  // Initialize mobile controls after DOM is ready
+  function initMobileControls() {
+    mobileControls = {
+      upBtn: document.getElementById('up-btn'),
+      leftBtn: document.getElementById('left-btn'),
+      downBtn: document.getElementById('down-btn'),
+      rightBtn: document.getElementById('right-btn'),
+      turboBtn: document.getElementById('turbo-btn'),
+      enterBtn: document.getElementById('enter-btn'),
+      backBtn: document.getElementById('back-btn')
+    };
+    
+    mobileKeyboard = document.getElementById('mobile-keyboard');
+    
+    // Debug: log what we found
+    console.log('Mobile controls found:', Object.keys(mobileControls).filter(key => mobileControls[key]));
+    
+    setupMobileControls();
+    setupVirtualKeyboard();
+  }
 
   // Mobile control event handlers
   function setupMobileControls() {
+    console.log('Setting up mobile controls...');
+    
     if (mobileControls.upBtn) {
+      console.log('Setting up up button');
       mobileControls.upBtn.addEventListener('touchstart', (e) => {
+        console.log('Up button pressed');
         e.preventDefault();
         if (state === STATE.PLAY && dir.y !== 1) {
           pendingDir = { x: 0, y: -1 };
         } else if (state === STATE.MENU) {
           menuIndex = (menuIndex - 1 + menu.length) % menu.length;
+          console.log('Menu index changed to:', menuIndex);
         }
       });
     }
@@ -684,12 +715,15 @@
     }
 
     if (mobileControls.downBtn) {
+      console.log('Setting up down button');
       mobileControls.downBtn.addEventListener('touchstart', (e) => {
+        console.log('Down button pressed');
         e.preventDefault();
         if (state === STATE.PLAY && dir.y !== -1) {
           pendingDir = { x: 0, y: 1 };
         } else if (state === STATE.MENU) {
           menuIndex = (menuIndex + 1) % menu.length;
+          console.log('Menu index changed to:', menuIndex);
         }
       });
     }
@@ -717,14 +751,18 @@
     }
 
     if (mobileControls.enterBtn) {
+      console.log('Setting up enter button');
       mobileControls.enterBtn.addEventListener('touchstart', (e) => {
+        console.log('Enter button pressed');
         e.preventDefault();
         handleEnterPress();
       });
     }
 
     if (mobileControls.backBtn) {
+      console.log('Setting up back button');
       mobileControls.backBtn.addEventListener('touchstart', (e) => {
+        console.log('Back button pressed');
         e.preventDefault();
         handleBackPress();
       });
@@ -733,8 +771,10 @@
 
   // Handle Enter key press for mobile
   function handleEnterPress() {
+    console.log('handleEnterPress called, state:', state);
     if (state === STATE.MENU) {
       const choice = menu[menuIndex];
+      console.log('Menu choice:', choice);
       if (choice === 'Start Game') {
         if (!nickname) {
           state = STATE.NICKNAME;
@@ -763,6 +803,7 @@
 
   // Handle Back/Escape key press for mobile
   function handleBackPress() {
+    console.log('handleBackPress called, state:', state);
     if (state === STATE.NICKNAME) {
       state = STATE.MENU;
     } else if (state === STATE.LEADER || state === STATE.FRUITS) {
@@ -790,6 +831,30 @@
         }
       });
     });
+  }
+
+  // Update mobile keyboard visibility
+  function updateMobileKeyboardVisibility() {
+    if (!mobileKeyboard) {
+      console.log('Mobile keyboard not found');
+      return;
+    }
+    
+    // Show keyboard only on touch devices and when in nickname state
+    const isTouchDevice = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+    console.log('Touch device:', isTouchDevice, 'State:', state, 'Nickname state:', STATE.NICKNAME);
+    
+    if (isTouchDevice && state === STATE.NICKNAME) {
+      mobileKeyboard.style.display = 'block';
+      mobileKeyboard.style.visibility = 'visible';
+      mobileKeyboard.style.opacity = '1';
+      console.log('Showing keyboard');
+    } else {
+      mobileKeyboard.style.display = 'none';
+      mobileKeyboard.style.visibility = 'hidden';
+      mobileKeyboard.style.opacity = '0';
+      console.log('Hiding keyboard');
+    }
   }
 
   // Update turbo button visual state
@@ -821,8 +886,9 @@
   }, 50);
 
   start();
-  setupMobileControls();
-  setupVirtualKeyboard();
+  
+  // Initialize mobile controls after a short delay to ensure DOM is ready
+  setTimeout(initMobileControls, 100);
 })();
 
 

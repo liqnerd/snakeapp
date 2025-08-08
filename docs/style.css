@@ -20,6 +20,9 @@ canvas#game {
   box-shadow: 0 10px 50px rgba(0,0,0,0.5);
   border-radius: 8px;
   background: #0f0f10;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
 }
 
 .mobile-controls {
@@ -88,23 +91,28 @@ canvas#game {
 .mobile-keyboard {
   margin-top: 10px;
   display: none;
+  background: #1a1a1a;
+  border-radius: 12px;
+  padding: 15px;
+  border: 2px solid #333;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
 }
 
 .keyboard-row {
   display: flex;
   justify-content: center;
-  gap: 5px;
-  margin-bottom: 5px;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 .key-btn {
-  width: 35px;
-  height: 35px;
+  width: 40px;
+  height: 40px;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   background-color: #2a2a2a;
   color: #eaeaea;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: bold;
   cursor: pointer;
   user-select: none;
@@ -121,10 +129,6 @@ canvas#game {
 @media (hover: none) and (pointer: coarse) {
   .mobile-controls {
     display: flex;
-  }
-  
-  .mobile-keyboard {
-    display: block;
   }
   
   /* Prevent text selection on mobile */
