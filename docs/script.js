@@ -36,6 +36,7 @@
 
   const STATE = {
     MENU: 'menu',
+    NICKNAME: 'nickname',
     PLAY: 'play',
     LEADER: 'leader',
     FRUITS: 'fruits',
@@ -44,6 +45,9 @@
   let state = STATE.MENU;
   const menu = ['Start Game', 'Leaderboard', 'Fruits', 'Exit'];
   let menuIndex = 0;
+  let nickname = '';
+  let nicknameInput = '';
+  let nicknameCursor = 0;
 
   let score = 0;
   let snake, dir, pendingDir, growthPending;
@@ -109,12 +113,17 @@
   }
 
   function saveScore() {
+    if (!nickname) return;
     try {
       const raw = localStorage.getItem('snake_scores');
       const arr = raw ? JSON.parse(raw) : [];
-      arr.push(score);
-      const unique = Array.from(new Set(arr)).sort((a,b) => b-a).slice(0, 100);
-      localStorage.setItem('snake_scores', JSON.stringify(unique));
+      arr.push({ score, nickname, timestamp: Date.now() });
+      // Keep top 100 scores, sorted by score then by timestamp
+      const sorted = arr.sort((a, b) => {
+        if (a.score !== b.score) return b.score - a.score;
+        return a.timestamp - b.timestamp;
+      }).slice(0, 100);
+      localStorage.setItem('snake_scores', JSON.stringify(sorted));
     } catch {}
   }
 
@@ -122,7 +131,14 @@
     try {
       const raw = localStorage.getItem('snake_scores');
       const arr = raw ? JSON.parse(raw) : [];
-      return Array.from(new Set(arr)).sort((a,b) => b-a).slice(0, 15);
+      // Handle both old format (numbers) and new format (objects)
+      const scores = arr.map(item => {
+        if (typeof item === 'number') {
+          return { score: item, nickname: 'Anonymous', timestamp: 0 };
+        }
+        return item;
+      });
+      return scores.slice(0, 15);
     } catch { return []; }
   }
 
@@ -266,9 +282,45 @@
     for (let i = 0; i < snake.length; i++) {
       const s = snake[i];
       const x = s.x * CELL, y = s.y * CELL;
-      ctx.fillStyle = (i === snake.length - 1) ? COLORS.snakeHead : COLORS.snake;
-      roundRect(x+1, y+1, CELL-2, CELL-2, 8);
-      ctx.fill();
+      
+      if (i === snake.length - 1) {
+        // Snake head
+        ctx.fillStyle = COLORS.snakeHead;
+        roundRect(x+1, y+1, CELL-2, CELL-2, 8);
+        ctx.fill();
+        
+        // Eyes
+        ctx.fillStyle = '#000';
+        const eyeSize = Math.max(2, CELL * 0.15);
+        const eyeOffset = Math.max(3, CELL * 0.25);
+        ctx.beginPath();
+        ctx.arc(x + eyeOffset, y + eyeOffset, eyeSize, 0, Math.PI*2);
+        ctx.arc(x + CELL - eyeOffset, y + eyeOffset, eyeSize, 0, Math.PI*2);
+        ctx.fill();
+        
+        // Tongue
+        ctx.fillStyle = '#ff4444';
+        const tongueWidth = Math.max(2, CELL * 0.1);
+        const tongueLength = Math.max(4, CELL * 0.3);
+        ctx.fillRect(x + CELL/2 - tongueWidth/2, y + CELL - 1, tongueWidth, tongueLength);
+      } else if (i === 0) {
+        // Snake tail
+        ctx.fillStyle = COLORS.snake;
+        roundRect(x+1, y+1, CELL-2, CELL-2, 8);
+        ctx.fill();
+        
+        // Tail tip
+        ctx.fillStyle = '#2a8f5a';
+        const tailSize = Math.max(3, CELL * 0.2);
+        ctx.beginPath();
+        ctx.arc(x + CELL/2, y + CELL/2, tailSize, 0, Math.PI*2);
+        ctx.fill();
+      } else {
+        // Snake body
+        ctx.fillStyle = COLORS.snake;
+        roundRect(x+1, y+1, CELL-2, CELL-2, 8);
+        ctx.fill();
+      }
     }
   }
 
@@ -312,6 +364,15 @@
       ctx.fillStyle = (i === menuIndex) ? '#fff' : '#c8c8c8';
       ctx.fillText(m, SIZE/2, SIZE/2 - Math.floor(SIZE*0.033) + i * Math.floor(SIZE*0.04));
     });
+    
+    // Controls info
+    ctx.font = `${Math.floor(SIZE*0.016)}px Inter, sans-serif`;
+    ctx.fillStyle = '#888';
+    ctx.fillText('W/A/S/D - Movement', SIZE/2, SIZE - 120);
+    ctx.fillText('Shift - Turbo', SIZE/2, SIZE - 100);
+    ctx.fillText('R - Restart', SIZE/2, SIZE - 80);
+    ctx.fillText('Enter - Menu', SIZE/2, SIZE - 60);
+    
     ctx.textAlign = 'left';
   }
 
@@ -327,7 +388,9 @@
     } else {
       let y = 140; ctx.textAlign = 'left';
       scores.forEach((s, i) => {
-        ctx.fillText(`${String(i+1).padStart(2, ' ')}. ${s}`, SIZE/2 - 80, y);
+        const scoreText = typeof s === 'number' ? s : s.score;
+        const nicknameText = typeof s === 'number' ? 'Anonymous' : s.nickname;
+        ctx.fillText(`${String(i+1).padStart(2, ' ')}. ${nicknameText} - ${scoreText}`, SIZE/2 - 120, y);
         y += Math.floor(SIZE*0.028);
       });
     }
@@ -342,30 +405,58 @@
     ctx.fillStyle = COLORS.text; ctx.textAlign = 'center';
     ctx.font = `${Math.floor(SIZE*0.036)}px Inter, sans-serif`;
     ctx.fillText('Fruits', SIZE/2, 70);
-    ctx.textAlign = 'left';
-    ctx.font = `${Math.floor(SIZE*0.022)}px Inter, sans-serif`;
-    let y = 130;
-    const iconSize = Math.floor(SIZE * 0.05);
-    FRUITS.forEach(f => {
-      // All fruits are now circles, just different colors
+    
+    // Modern centered layout
+    const centerX = SIZE / 2;
+    const startY = 130;
+    const itemHeight = Math.floor(SIZE * 0.08);
+    const iconSize = Math.floor(SIZE * 0.06);
+    
+    FRUITS.forEach((f, i) => {
+      const y = startY + i * itemHeight;
+      
+      // Background card
+      ctx.fillStyle = '#1a1a1a';
+      roundRect(centerX - 200, y - 10, 400, itemHeight - 5, 12);
+      ctx.fill();
+      
+      // Fruit icon
       ctx.fillStyle = f.color;
       ctx.beginPath();
-      ctx.arc(120 + iconSize/2, y + iconSize/2, iconSize/2, 0, Math.PI*2);
+      ctx.arc(centerX - 150, y + itemHeight/2 - 10, iconSize/2, 0, Math.PI*2);
       ctx.fill();
+      
+      // Text
       ctx.fillStyle = COLORS.text;
-      ctx.fillText(`${f.name}  +${f.points}`, 120 + iconSize + 20, y + iconSize * 0.7);
-      y += Math.max(50, Math.floor(SIZE*0.07));
+      ctx.font = `${Math.floor(SIZE*0.022)}px Inter, sans-serif`;
+      ctx.textAlign = 'left';
+      ctx.fillText(f.name, centerX - 100, y + itemHeight/2);
+      ctx.textAlign = 'right';
+      ctx.fillText(`+${f.points}`, centerX + 150, y + itemHeight/2);
     });
+    
+    // Special fruit
+    const specialY = startY + FRUITS.length * itemHeight;
+    ctx.fillStyle = '#1a1a1a';
+    roundRect(centerX - 200, specialY - 10, 400, itemHeight - 5, 12);
+    ctx.fill();
+    
     ctx.fillStyle = '#ff6a5e';
-    // draw 2x2 block
-    const cell = Math.floor(SIZE*0.018); const bx = 120, by = y + 10;
-    roundRect(bx, by, cell, cell, 6); ctx.fill();
-    roundRect(bx+cell+4, by, cell, cell, 6); ctx.fill();
-    roundRect(bx, by+cell+4, cell, cell, 6); ctx.fill();
-    roundRect(bx+cell+4, by+cell+4, cell, cell, 6); ctx.fill();
-    ctx.fillStyle = COLORS.text; ctx.fillText('Mega Fruit (2x2 center)  +10', 170, by + 20);
-    ctx.font = `${Math.floor(SIZE*0.018)}px Inter, sans-serif`; ctx.fillStyle = '#c8c8c8';
-    ctx.fillText('Esc/Backspace to return', SIZE/2 - 120, SIZE - 40);
+    const specialSize = Math.floor(SIZE * 0.04);
+    roundRect(centerX - 150, specialY + itemHeight/2 - specialSize/2, specialSize, specialSize, 8);
+    ctx.fill();
+    
+    ctx.fillStyle = COLORS.text;
+    ctx.font = `${Math.floor(SIZE*0.022)}px Inter, sans-serif`;
+    ctx.textAlign = 'left';
+    ctx.fillText('Mega Fruit (2x2)', centerX - 100, specialY + itemHeight/2);
+    ctx.textAlign = 'right';
+    ctx.fillText('+10', centerX + 150, specialY + itemHeight/2);
+    
+    ctx.textAlign = 'center';
+    ctx.font = `${Math.floor(SIZE*0.018)}px Inter, sans-serif`;
+    ctx.fillStyle = '#c8c8c8';
+    ctx.fillText('Esc/Backspace to return', SIZE/2, SIZE - 40);
   }
 
   function drawPlay() {
@@ -388,6 +479,37 @@
     ctx.closePath();
   }
 
+  function drawNickname() {
+    ctx.fillStyle = COLORS.bg; ctx.fillRect(0, 0, SIZE, SIZE);
+    ctx.fillStyle = COLORS.text; ctx.textAlign = 'center';
+    ctx.font = `${Math.floor(SIZE*0.036)}px Inter, sans-serif`;
+    ctx.fillText('Enter Your Nickname', SIZE/2, SIZE/2 - 100);
+    
+    // Input box
+    const inputWidth = 400;
+    const inputHeight = 50;
+    const inputX = SIZE/2 - inputWidth/2;
+    const inputY = SIZE/2 - 25;
+    
+    ctx.fillStyle = '#1a1a1a';
+    roundRect(inputX, inputY, inputWidth, inputHeight, 12);
+    ctx.fill();
+    
+    // Text
+    ctx.fillStyle = COLORS.text;
+    ctx.font = `${Math.floor(SIZE*0.024)}px Inter, sans-serif`;
+    ctx.textAlign = 'left';
+    const displayText = nicknameInput + (Date.now() % 1000 < 500 ? '|' : '');
+    ctx.fillText(displayText, inputX + 20, inputY + 32);
+    
+    // Instructions
+    ctx.font = `${Math.floor(SIZE*0.018)}px Inter, sans-serif`;
+    ctx.fillStyle = '#888';
+    ctx.textAlign = 'center';
+    ctx.fillText('Press Enter to continue', SIZE/2, SIZE/2 + 50);
+    ctx.fillText('Max 12 characters', SIZE/2, SIZE/2 + 80);
+  }
+
   function tick(ts) {
     if (state === STATE.PLAY) {
       const interval = turboActive ? Math.max(1, STEP_MS * 0.45) : STEP_MS;
@@ -403,6 +525,8 @@
       drawPlay();
     } else if (state === STATE.MENU) {
       drawMenu();
+    } else if (state === STATE.NICKNAME) {
+      drawNickname();
     } else if (state === STATE.LEADER) {
       drawLeader();
     } else if (state === STATE.FRUITS) {
@@ -424,12 +548,34 @@
       else if (e.key === 'ArrowDown' || e.key.toLowerCase() === 's') menuIndex = (menuIndex + 1) % menu.length;
       else if (e.key === 'Enter' || e.key === ' ') {
         const choice = menu[menuIndex];
-        if (choice === 'Start Game') state = STATE.PLAY, resetGame();
+        if (choice === 'Start Game') {
+          if (!nickname) {
+            state = STATE.NICKNAME;
+            nicknameInput = '';
+          } else {
+            state = STATE.PLAY;
+            resetGame();
+          }
+        }
         else if (choice === 'Leaderboard') state = STATE.LEADER;
         else if (choice === 'Fruits') state = STATE.FRUITS;
         else if (choice === 'Exit') window.location.href = 'https://github.com/liqnerd/snakeapp';
       } else if (e.key === 'Escape') {
         window.close();
+      }
+    } else if (state === STATE.NICKNAME) {
+      if (e.key === 'Enter') {
+        if (nicknameInput.trim()) {
+          nickname = nicknameInput.trim();
+          state = STATE.PLAY;
+          resetGame();
+        }
+      } else if (e.key === 'Escape') {
+        state = STATE.MENU;
+      } else if (e.key === 'Backspace') {
+        nicknameInput = nicknameInput.slice(0, -1);
+      } else if (e.key.length === 1 && nicknameInput.length < 12) {
+        nicknameInput += e.key;
       }
     } else if (state === STATE.PLAY) {
       if (e.key === 'Escape') { state = STATE.MENU; return; }
