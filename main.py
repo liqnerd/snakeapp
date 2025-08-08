@@ -317,7 +317,7 @@ class Game:
             overlay = pygame.Surface((WINDOW_SIZE, WINDOW_SIZE), pygame.SRCALPHA)
             overlay.fill((0, 0, 0, 140))
             surface.blit(overlay, (0, 0))
-            big_font = pygame.font.SysFont("consolas,arial,segoue ui", 36, bold=True)
+            big_font = pygame.font.Font(None, 48)
             msg = big_font.render("Game Over", True, WHITE)
             sub = font.render("Press R to restart", True, WHITE)
             rect = msg.get_rect(center=(WINDOW_SIZE // 2, WINDOW_SIZE // 2 - 10))
@@ -446,8 +446,9 @@ def main():
     pygame.display.set_caption("Snake 32x32")
     screen = pygame.display.set_mode((WINDOW_SIZE, WINDOW_SIZE))
     clock = pygame.time.Clock()
-    font = pygame.font.SysFont("consolas,arial,segoue ui", 22)
-    big_font = pygame.font.SysFont("consolas,arial,segoue ui", 36, bold=True)
+    # Use default font to avoid missing font issues on the web
+    font = pygame.font.Font(None, 28)
+    big_font = pygame.font.Font(None, 48)
 
     # Game states
     STATE_MENU = "menu"
