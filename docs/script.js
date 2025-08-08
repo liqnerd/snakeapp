@@ -27,11 +27,11 @@
   };
 
   const FRUITS = [
-    { name: 'Apple',    color: '#eb4034', points: 1, weight: 50, shape: 'circle'   },
-    { name: 'Orange',   color: '#ffa500', points: 2, weight: 30, shape: 'ring'     },
-    { name: 'Banana',   color: '#ffd700', points: 3, weight: 15, shape: 'crescent' },
-    { name: 'Berry',    color: '#ba55d3', points: 4, weight: 4,  shape: 'diamond'  },
-    { name: 'Starfruit',color: '#1e90ff', points: 5, weight: 1,  shape: 'star'     },
+    { name: 'Apple',    color: '#eb4034', points: 1, weight: 50, shape: 'circle'       },
+    { name: 'Orange',   color: '#ffa500', points: 2, weight: 30, shape: 'ring'         },
+    { name: 'Banana',   color: '#ffd700', points: 3, weight: 15, shape: 'doublecircle' },
+    { name: 'Berry',    color: '#ba55d3', points: 4, weight: 4,  shape: 'diamond'      },
+    { name: 'Starfruit',color: '#1e90ff', points: 5, weight: 1,  shape: 'star'         },
   ];
 
   const STATE = {
@@ -241,6 +241,29 @@
     ctx.closePath();
   }
 
+  function drawFruitIcon(shape, color, cx, cy, size) {
+    const x = cx - size/2, y = cy - size/2; const r = size*0.4;
+    ctx.save();
+    switch (shape) {
+      case 'circle':
+        ctx.fillStyle = color; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill(); break;
+      case 'ring':
+        ctx.strokeStyle = color; ctx.lineWidth = Math.max(2, size*0.18); ctx.beginPath(); ctx.arc(cx, cy, r*0.8, 0, Math.PI*2); ctx.stroke(); break;
+      case 'diamond':
+        ctx.fillStyle = color; ctx.beginPath(); ctx.moveTo(cx, y+2); ctx.lineTo(x+size-2, cy); ctx.lineTo(cx, y+size-2); ctx.lineTo(x+2, cy); ctx.closePath(); ctx.fill(); break;
+      case 'doublecircle':
+        ctx.fillStyle = color; const rr = r*0.6, off = r*0.5;
+        ctx.beginPath(); ctx.arc(cx-off, cy, rr, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(cx+off, cy, rr, 0, Math.PI*2); ctx.fill();
+        break;
+      case 'star':
+        ctx.fillStyle = color; starPath(cx, cy, r*0.9, r*0.45, 5); ctx.fill(); break;
+      default:
+        ctx.fillStyle = color; roundRect(x+2, y+2, size-4, size-4, 6); ctx.fill();
+    }
+    ctx.restore();
+  }
+
   function drawSpecial() {
     if (!specialActive) return;
     const t = performance.now() / 1000;
@@ -290,15 +313,16 @@
     } else {
       const since = performance.now() - turboLast;
       const ratio = Math.min(1, since / TURBO_COOLDOWN);
-      ctx.fillStyle = ratio >= 1 ? '#5bd18a' : '#78aaff';
-      roundRect(x, y, bw * ratio, bh, 6); ctx.fill();
-      // Ready effect: pulsating glow when available
       if (ratio >= 1) {
+        // Bar itself blinks when ready
         const t = performance.now()/1000;
         const glow = (Math.sin(t*6)+1)/2; // 0..1
-        ctx.strokeStyle = `rgba(255,255,180,${0.35 + glow*0.4})`;
-        ctx.lineWidth = Math.max(2, bh * 0.5);
-        ctx.strokeRect(x - 3, y - 3, bw + 6, bh + 6);
+        const light = Math.floor(60 + glow * 40);
+        ctx.fillStyle = `hsl(140, 60%, ${light}%)`;
+        roundRect(x, y, bw, bh, 6); ctx.fill();
+      } else {
+        ctx.fillStyle = '#78aaff';
+        roundRect(x, y, bw * ratio, bh, 6); ctx.fill();
       }
     }
     ctx.fillStyle = COLORS.text; ctx.font = `${Math.floor(SIZE*0.018)}px Inter, sans-serif`;
@@ -348,11 +372,12 @@
     ctx.textAlign = 'left';
     ctx.font = `${Math.floor(SIZE*0.022)}px Inter, sans-serif`;
     let y = 130;
+    const iconSize = Math.floor(SIZE * 0.05);
     FRUITS.forEach(f => {
-      ctx.fillStyle = f.color; roundRect(120, y, Math.floor(SIZE*0.026), Math.floor(SIZE*0.023), 6); ctx.fill();
+      drawFruitIcon(f.shape, f.color, 120 + iconSize/2, y + iconSize/2, iconSize);
       ctx.fillStyle = COLORS.text;
-      ctx.fillText(`${f.name}  +${f.points}`, 170, y + 22);
-      y += 50;
+      ctx.fillText(`${f.name}  +${f.points}`, 120 + iconSize + 20, y + iconSize * 0.7);
+      y += Math.max(50, Math.floor(SIZE*0.07));
     });
     ctx.fillStyle = '#ff6a5e';
     // draw 2x2 block
