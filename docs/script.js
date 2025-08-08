@@ -653,8 +653,13 @@
     leftBtn: document.getElementById('left-btn'),
     downBtn: document.getElementById('down-btn'),
     rightBtn: document.getElementById('right-btn'),
-    turboBtn: document.getElementById('turbo-btn')
+    turboBtn: document.getElementById('turbo-btn'),
+    enterBtn: document.getElementById('enter-btn'),
+    backBtn: document.getElementById('back-btn')
   };
+
+  // Virtual keyboard
+  const mobileKeyboard = document.getElementById('mobile-keyboard');
 
   // Mobile control event handlers
   function setupMobileControls() {
@@ -663,6 +668,8 @@
         e.preventDefault();
         if (state === STATE.PLAY && dir.y !== 1) {
           pendingDir = { x: 0, y: -1 };
+        } else if (state === STATE.MENU) {
+          menuIndex = (menuIndex - 1 + menu.length) % menu.length;
         }
       });
     }
@@ -681,6 +688,8 @@
         e.preventDefault();
         if (state === STATE.PLAY && dir.y !== -1) {
           pendingDir = { x: 0, y: 1 };
+        } else if (state === STATE.MENU) {
+          menuIndex = (menuIndex + 1) % menu.length;
         }
       });
     }
@@ -706,6 +715,81 @@
         }
       });
     }
+
+    if (mobileControls.enterBtn) {
+      mobileControls.enterBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        handleEnterPress();
+      });
+    }
+
+    if (mobileControls.backBtn) {
+      mobileControls.backBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        handleBackPress();
+      });
+    }
+  }
+
+  // Handle Enter key press for mobile
+  function handleEnterPress() {
+    if (state === STATE.MENU) {
+      const choice = menu[menuIndex];
+      if (choice === 'Start Game') {
+        if (!nickname) {
+          state = STATE.NICKNAME;
+          nicknameInput = '';
+        } else {
+          state = STATE.PLAY;
+          resetGame();
+        }
+      }
+      else if (choice === 'Leaderboard') state = STATE.LEADER;
+      else if (choice === 'Fruits') state = STATE.FRUITS;
+      else if (choice === 'Exit') window.location.href = 'https://github.com/liqnerd/snakeapp';
+    } else if (state === STATE.NICKNAME) {
+      if (nicknameInput.trim()) {
+        nickname = nicknameInput.trim();
+        state = STATE.PLAY;
+        resetGame();
+      }
+    } else if (state === STATE.PLAY) {
+      saveScore();
+      state = STATE.MENU;
+    } else if (state === STATE.LEADER || state === STATE.FRUITS) {
+      state = STATE.MENU;
+    }
+  }
+
+  // Handle Back/Escape key press for mobile
+  function handleBackPress() {
+    if (state === STATE.NICKNAME) {
+      state = STATE.MENU;
+    } else if (state === STATE.LEADER || state === STATE.FRUITS) {
+      state = STATE.MENU;
+    } else if (state === STATE.PLAY) {
+      state = STATE.MENU;
+    }
+  }
+
+  // Setup virtual keyboard
+  function setupVirtualKeyboard() {
+    if (!mobileKeyboard) return;
+    
+    const keyButtons = mobileKeyboard.querySelectorAll('.key-btn');
+    keyButtons.forEach(btn => {
+      btn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        const key = btn.getAttribute('data-key');
+        if (state === STATE.NICKNAME) {
+          if (key === 'backspace') {
+            nicknameInput = nicknameInput.slice(0, -1);
+          } else if (nicknameInput.length < 12) {
+            nicknameInput += key;
+          }
+        }
+      });
+    });
   }
 
   // Update turbo button visual state
@@ -738,6 +822,7 @@
 
   start();
   setupMobileControls();
+  setupVirtualKeyboard();
 })();
 
 

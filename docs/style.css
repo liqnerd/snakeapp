@@ -65,10 +65,66 @@ canvas#game {
   background-color: #ff6a5e;
 }
 
+.enter-btn {
+  width: 120px;
+  font-size: 16px;
+  background-color: #3ccd78;
+}
+
+.enter-btn:active {
+  background-color: #28b464;
+}
+
+.back-btn {
+  width: 120px;
+  font-size: 16px;
+  background-color: #ff6a5e;
+}
+
+.back-btn:active {
+  background-color: #e55a4e;
+}
+
+.mobile-keyboard {
+  margin-top: 10px;
+  display: none;
+}
+
+.keyboard-row {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  margin-bottom: 5px;
+}
+
+.key-btn {
+  width: 35px;
+  height: 35px;
+  border: none;
+  border-radius: 6px;
+  background-color: #2a2a2a;
+  color: #eaeaea;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  user-select: none;
+  touch-action: manipulation;
+  transition: all 0.2s ease;
+}
+
+.key-btn:active {
+  background-color: #3ccd78;
+  transform: scale(0.95);
+}
+
 /* Show mobile controls on touch devices */
 @media (hover: none) and (pointer: coarse) {
   .mobile-controls {
     display: flex;
+  }
+  
+  .mobile-keyboard {
+    display: block;
   }
   
   /* Prevent text selection on mobile */
