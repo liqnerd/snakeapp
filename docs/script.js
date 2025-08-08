@@ -27,11 +27,11 @@
   };
 
   const FRUITS = [
-    { name: 'Apple',    color: '#eb4034', points: 1, weight: 50, shape: 'circle'       },
-    { name: 'Orange',   color: '#ffa500', points: 2, weight: 30, shape: 'ring'         },
-    { name: 'Banana',   color: '#ffd700', points: 3, weight: 15, shape: 'doublecircle' },
-    { name: 'Berry',    color: '#ba55d3', points: 4, weight: 4,  shape: 'diamond'      },
-    { name: 'Starfruit',color: '#1e90ff', points: 5, weight: 1,  shape: 'star'         },
+    { name: 'Apple',    color: '#eb4034', points: 1, weight: 50, shape: 'circle' },
+    { name: 'Orange',   color: '#ffa500', points: 2, weight: 30, shape: 'circle' },
+    { name: 'Banana',   color: '#ffd700', points: 3, weight: 15, shape: 'circle' },
+    { name: 'Berry',    color: '#ba55d3', points: 4, weight: 4,  shape: 'circle' },
+    { name: 'Starfruit',color: '#1e90ff', points: 5, weight: 1,  shape: 'circle' },
   ];
 
   const STATE = {
@@ -194,37 +194,9 @@
     const cx = x + CELL/2, cy = y + CELL/2;
     const r = Math.max(6, CELL*0.4);
     ctx.save();
-    if (fruitShape === 'circle') {
-      ctx.fillStyle = fruitColor;
-      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
-    } else if (fruitShape === 'ring') {
-      ctx.strokeStyle = fruitColor; ctx.lineWidth = Math.max(3, CELL*0.2);
-      ctx.beginPath(); ctx.arc(cx, cy, r*0.8, 0, Math.PI*2); ctx.stroke();
-    } else if (fruitShape === 'diamond') {
-      ctx.fillStyle = fruitColor;
-      ctx.beginPath();
-      ctx.moveTo(cx, y+3);
-      ctx.lineTo(x+CELL-3, cy);
-      ctx.lineTo(cx, y+CELL-3);
-      ctx.lineTo(x+3, cy);
-      ctx.closePath(); ctx.fill();
-    } else if (fruitShape === 'crescent') {
-      // draw a circle then carve with bg to make crescent
-      ctx.fillStyle = fruitColor;
-      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
-      ctx.globalCompositeOperation = 'destination-out';
-      ctx.fillStyle = 'rgba(0,0,0,1)';
-      ctx.beginPath(); ctx.arc(cx + r*0.35, cy, r*0.9, 0, Math.PI*2); ctx.fill();
-      ctx.globalCompositeOperation = 'source-over';
-    } else if (fruitShape === 'star') {
-      ctx.fillStyle = fruitColor;
-      starPath(cx, cy, r*0.9, r*0.45, 5);
-      ctx.fill();
-    } else {
-      // fallback rounded rect
-      ctx.fillStyle = fruitColor;
-      roundRect(x+2, y+2, CELL-4, CELL-4, 6); ctx.fill();
-    }
+    // All fruits are now circles, just different colors
+    ctx.fillStyle = fruitColor;
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
     ctx.restore();
   }
 
@@ -269,12 +241,13 @@
     const t = performance.now() / 1000;
     const hue = (t * 180) % 360;
     const base = `hsl(${hue}, 100%, 55%)`;
-    for (const c of specialCells) {
-      const x = c.x * CELL, y = c.y * CELL;
-      ctx.fillStyle = base;
-      roundRect(x+1, y+1, CELL-2, CELL-2, 8);
-      ctx.fill();
-    }
+    // Draw as one large 2x2 object instead of 4 separate squares
+    const minX = Math.min(...specialCells.map(c => c.x));
+    const minY = Math.min(...specialCells.map(c => c.y));
+    const x = minX * CELL, y = minY * CELL;
+    ctx.fillStyle = base;
+    roundRect(x+1, y+1, CELL*2-2, CELL*2-2, 12);
+    ctx.fill();
   }
 
   function drawSnakeGlow() {
@@ -374,7 +347,11 @@
     let y = 130;
     const iconSize = Math.floor(SIZE * 0.05);
     FRUITS.forEach(f => {
-      drawFruitIcon(f.shape, f.color, 120 + iconSize/2, y + iconSize/2, iconSize);
+      // All fruits are now circles, just different colors
+      ctx.fillStyle = f.color;
+      ctx.beginPath();
+      ctx.arc(120 + iconSize/2, y + iconSize/2, iconSize/2, 0, Math.PI*2);
+      ctx.fill();
       ctx.fillStyle = COLORS.text;
       ctx.fillText(`${f.name}  +${f.points}`, 120 + iconSize + 20, y + iconSize * 0.7);
       y += Math.max(50, Math.floor(SIZE*0.07));
