@@ -68,7 +68,10 @@ async def custom_site():
 
     def compose():
         pygame.display.update()
-        window.chromakey(None, *screen.get_colorkey(), 40)
+        try:
+            platform.window.chromakey(None, *screen.get_colorkey(), 40)
+        except Exception:
+            pass
 
     pygame.init()
     pygame.font.init()
@@ -188,7 +191,15 @@ async def custom_site():
     screen.fill( (0,0,0,0) )
     pygame.display.flip()
 
-    await shell.runpy(main, callback=ui_callback)
+    try:
+        await shell.runpy(main, callback=ui_callback)
+    except Exception as e:
+        # Draw error on the canvas explicitly
+        fnt = pygame.sysfont.SysFont("freesans", uy(80))
+        msg = f"ERR: {type(e).__name__}: {e}"
+        pygame.draw.rect(screen,(0,0,0),(0,0,ux(1.000),uy(1.000)))
+        screen.blit(fnt.render(msg, True, "red"), (ux(.050), uy(.050)))
+        compose()
 
 
 
